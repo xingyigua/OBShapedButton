@@ -88,8 +88,6 @@
 
 @property (nonatomic, assign) CGPoint previousTouchPoint;
 @property (nonatomic, assign) BOOL previousTouchHitTestResponse;
-@property (nonatomic, strong) UIImage *buttonImage;
-@property (nonatomic, strong) UIImage *buttonBackground;
 
 - (void)updateImageCacheForCurrentState;
 - (void)resetHitTestCache;
@@ -127,7 +125,6 @@
     // Correction for image scaling including contentmode
     CGPoint pt = CGPointApplyAffineTransform(point, self.imageView.viewToImageTransform);
     point = pt;
-    
 
     UIColor *pixelColor = [image colorAtPixel:point];
     CGFloat alpha = 0.0;
@@ -149,6 +146,67 @@
 }
 
 
+//- (BOOL)beginTrackingWithTouch:(UITouch *)touch withEvent:(nullable UIEvent *)event {
+//    BOOL superResult = [super beginTrackingWithTouch:touch withEvent:event];
+//    if (!superResult) {
+//        return superResult;
+//    }
+//    return [self trackingWithTouch:[touch locationInView:self]];
+//}
+//
+//- (BOOL)continueTrackingWithTouch:(UITouch *)touch withEvent:(nullable UIEvent *)event {
+//    BOOL superResult = [super continueTrackingWithTouch:touch withEvent:event];
+//    if (!superResult) {
+//        return superResult;
+//    }
+//    return [self trackingWithTouch:[touch locationInView:self]];
+//}
+
+- (BOOL)trackingWithTouch:(CGPoint)point {
+
+    if (CGPointEqualToPoint(point, self.previousTouchPoint)) {
+        return self.previousTouchHitTestResponse;
+    } else {
+        self.previousTouchPoint = point;
+    }
+
+    BOOL response = NO;
+
+    if (self.currentImage == nil && self.currentBackgroundImage == nil) {
+        response = YES;
+    }
+    else if (self.currentImage != nil && self.currentBackgroundImage == nil) {
+        response = [self isAlphaVisibleAtPoint:point forImage:self.currentImage];
+    }
+    else if (self.currentImage == nil && self.currentBackgroundImage != nil) {
+        response = [self isAlphaVisibleAtPoint:point forImage:self.currentBackgroundImage];
+    }
+    else {
+        if ([self isAlphaVisibleAtPoint:point forImage:self.currentImage]) {
+            response = YES;
+        } else {
+            response = [self isAlphaVisibleAtPoint:point forImage:self.currentBackgroundImage];
+        }
+    }
+
+    self.previousTouchHitTestResponse = response;
+    return response;
+}
+
+
+- (UIView *)hitTest:(CGPoint)point withEvent:(UIEvent *)event {
+
+    if (self.hidden == YES || self.isUserInteractionEnabled == NO) {
+        return nil;
+    }
+
+    if ([self trackingWithTouch:point]) {
+        return self;
+    }
+    return nil;
+}
+
+/*
 // UIView uses this method in hitTest:withEvent: to determine which subview should receive a touch event.
 // If pointInside:withEvent: returns YES, then the subview’s hierarchy is traversed; otherwise, its branch
 // of the view hierarchy is ignored.
@@ -190,7 +248,7 @@
     self.previousTouchHitTestResponse = response;
     return response;
 }
-
+*/
 
 #pragma mark - Accessors
 
@@ -232,8 +290,8 @@
 
 - (void)updateImageCacheForCurrentState
 {
-    _buttonBackground = [self currentBackgroundImage];
-    _buttonImage = [self currentImage];
+//    _buttonBackground = [self currentBackgroundImage];
+//    _buttonImage = [self currentImage];
 }
 
 - (void)resetHitTestCache
